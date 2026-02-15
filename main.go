@@ -3,20 +3,26 @@ package main
 import (
 	"fmt"
 	"github.com/vetal-bla/bootdev-gorat/internal/config"
-	"os"
+	"log"
 )
 
 func main() {
-	cfg := config.Config{}
 	cfg, err := config.Read()
+	if err != nil {
+		log.Fatalf("Error reading file %w\n", err)
+	}
+	fmt.Printf("Read config: %+v\n", cfg)
+
+	err = cfg.SetUser("testing some user")
 
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatalf("Cant set current_user: %w\n", err)
 	}
 
-	cfg.SetUser("testing5432")
-
-	fmt.Println(cfg)
+	cfg, err = config.Read()
+	if err != nil {
+		log.Fatalf("Error reading file %w\n", err)
+	}
+	fmt.Printf("Read config again: %+v\n", cfg)
 
 }
