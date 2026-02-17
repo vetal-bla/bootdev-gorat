@@ -23,6 +23,7 @@ func main() {
 		registeredCmds: make(map[string]func(*state, command) error),
 	}
 
+	// register command by name with handler function
 	c.register("login", handlerLogin)
 
 	args := os.Args
@@ -34,6 +35,7 @@ func main() {
 	cmdName := args[1]
 	cmdArgs := args[2:]
 
+	// now you can run command which you registered above
 	err = c.run(programState, command{Name: cmdName, Args: cmdArgs})
 	if err != nil {
 		log.Fatal(err)
