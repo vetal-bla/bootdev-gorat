@@ -1,12 +1,16 @@
 package main
 
 import (
+	"database/sql"
+	_ "github.com/lib/pq"
 	"github.com/vetal-bla/bootdev-gorat/internal/config"
+	"github.com/vetal-bla/bootdev-gorat/internal/database"
 	"log"
 	"os"
 )
 
 type state struct {
+	db    *database.Queries
 	state *config.Config
 }
 
@@ -15,7 +19,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error reading file %w\n", err)
 	}
+
+	db, err := sql.Open("postgres", cfg.DBUrl)
+	if err != nil {
+		log.Fatalf("Cant open database", err)
+	}
+	defer db.Close()
+	dbQueries := database.New(db)
+
 	programState := &state{
+		db:    dbQueries,
 		state: &cfg,
 	}
 
@@ -25,6 +38,7 @@ func main() {
 
 	// register command by name with handler function
 	c.register("login", handlerLogin)
+	c.register("register", handlerRegister)
 
 	args := os.Args
 
