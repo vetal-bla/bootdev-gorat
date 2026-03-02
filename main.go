@@ -39,6 +39,9 @@ func main() {
 	// register command by name with handler function
 	c.register("login", handlerLogin)
 	c.register("register", handlerRegister)
+	c.register("reset", handlerReset)
+	c.register("users", handlerGetUsres)
+	c.register("agg", handlerAgg)
 
 	args := os.Args
 

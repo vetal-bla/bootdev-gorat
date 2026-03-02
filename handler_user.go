@@ -63,3 +63,39 @@ func handlerRegister(s *state, cmd command) error {
 
 	return nil
 }
+
+func handlerReset(s *state, cmd command) error {
+	if len(cmd.Args) > 0 {
+		return fmt.Errorf("there no additional arguments for that command")
+	}
+	err := s.db.DeleteAllUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("Can't remove users %w", err)
+	}
+
+	fmt.Println("users table was cleared")
+
+	return nil
+}
+
+func handlerGetUsres(s *state, cmd command) error {
+	if len(cmd.Args) > 0 {
+		return fmt.Errorf("there no additional arguments for that command")
+	}
+
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("cant get all users from database")
+	}
+
+	currentUser := s.state.CurrentUserName
+	for _, u := range users {
+		displayString := fmt.Sprintf("* %s", u.Name)
+		if u.Name == currentUser {
+			displayString = displayString + " (current)"
+		}
+		fmt.Println(displayString)
+	}
+
+	return nil
+}
