@@ -42,7 +42,11 @@ func main() {
 	c.register("reset", handlerReset)
 	c.register("users", handlerGetUsres)
 	c.register("agg", handlerAgg)
-	c.register("addfeed", handlerAddFeed)
+	c.register("addfeed", middlewareLoggedIn(handlerAddFeed))
+	c.register("feeds", handdlerGetFeeds)
+	c.register("follow", middlewareLoggedIn(handlerFollowFeed))
+	c.register("following", middlewareLoggedIn(handlerFollowing))
+	c.register("unfollow", middlewareLoggedIn(handlerUnfollow))
 
 	args := os.Args
 
