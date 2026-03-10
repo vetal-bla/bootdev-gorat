@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -127,6 +129,38 @@ func handlerFollowFeed(s *state, cmd command, user database.User) error {
 	return nil
 }
 
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	limitPosts := "2"
+	if len(cmd.Args) == 1 {
+		limitPosts = cmd.Args[0]
+	}
+
+	limit, err := strconv.ParseInt(limitPosts, 10, 32)
+	if err != nil {
+		return fmt.Errorf("Cant convert limit of string to int")
+	}
+
+	postsArgument := database.GetPostsByuserParams{
+		ID:    user.ID,
+		Limit: int32(limit),
+	}
+
+	posts, err := s.db.GetPostsByuser(context.Background(), postsArgument)
+	if err != nil {
+		return fmt.Errorf("Cant print posts")
+	}
+
+	for _, item := range posts {
+		fmt.Printf("Title: %s\n", item.Title)
+		fmt.Printf("Description: %s\n", item.Description)
+		fmt.Printf("Url: %s\n", item.Url)
+		fmt.Println("----------------------------------")
+	}
+
+	return nil
+
+}
+
 func handlerFollowing(s *state, cmd command, user database.User) error {
 	if len(cmd.Args) > 0 {
 		return fmt.Errorf("Usage: %s", cmd.Name)
@@ -199,9 +233,43 @@ func scrapeFeed(db *database.Queries, feed database.Feed) {
 		return
 	}
 
+	countInsertedPosts := 0
+
 	for _, item := range feedData.Channel.Item {
-		fmt.Printf("Found post: %s\n", item.Title)
+		pubTime, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			log.Printf("Cant parse datetime from feed: %s\nerr:%v", item.Title, err)
+			continue
+		}
+
+		postParams := database.AddPostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       item.Title,
+			Description: item.Description,
+			PublishedAt: pubTime,
+			FeedID:      feed.ID,
+			Url:         item.Link,
+		}
+
+		post, err := db.AddPost(context.Background(), postParams)
+		if err != nil {
+			// We check if the error message contains "unique constraint"
+			// This is common in PostgreSQL errors
+			if strings.Contains(err.Error(), "duplicate key value") {
+				log.Println("Post already exists, skipping...")
+				continue
+			}
+
+			// If it is a different error, we log it
+			log.Printf("A real error happened: %v\n", err)
+			continue
+		}
+		countInsertedPosts++
+
+		fmt.Printf("Found post and save it: %s\n%s\n", post.Title, post.Url)
 	}
 
-	fmt.Printf("Feed %s collected. Post founds - %d", feed.Name, len(feedData.Channel.Item))
+	fmt.Printf("Feed %s collected. New posts inserted %d out of feed %d", feed.Name, countInsertedPosts, len(feedData.Channel.Item))
 }
